@@ -6,6 +6,7 @@ import kycRoutes from './kyc.ts';
 import financialsRoutes from './financials.ts';
 import documentRoutes from './documents.ts';
 import scoreRoutes from './scoring.ts';
+import notificationRoutes from './notifications.ts';
 import capitalTableRoutes from './capital-table.ts';
 
 export default async function registerRoutes(fastify: FastifyInstance) {
@@ -36,5 +37,6 @@ export default async function registerRoutes(fastify: FastifyInstance) {
   fastify.register(financialsRoutes, { prefix: '/api/financials' });
   fastify.register(documentRoutes, { prefix: '/api/files' });
   fastify.register(scoreRoutes, { prefix: '/api/score' });
+  fastify.register(notificationRoutes, { prefix: '/api/notifications' });
   fastify.register(capitalTableRoutes, { prefix: '/api/cap-table' });
 }
