@@ -1,6 +1,7 @@
 
 import { FastifyInstance } from 'fastify';
 import authRoutes from './auth.ts';
+import companyRoutes from './companies.ts';
 
 export default async function registerRoutes(fastify: FastifyInstance) {
   fastify.get('/health', async (request, reply) => {
@@ -25,4 +26,5 @@ export default async function registerRoutes(fastify: FastifyInstance) {
   });
 
   fastify.register(authRoutes, { prefix: '/api/auth' });
+  fastify.register(companyRoutes, { prefix: '/api/company' });
 }
