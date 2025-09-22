@@ -43,7 +43,7 @@ const notificationPlugin = fp(async (fastify: FastifyInstance) => {
             });
           } 
           catch (knockError) {
-            fastify.log.error(`Knock workflow trigger failed: ${knockError instanceof Error ? knockError.message : String(knockError)}`);
+            fastify.log.error(knockError as Error, 'Knock workflow trigger failed:');
           }
         } 
         else {
@@ -52,7 +52,7 @@ const notificationPlugin = fp(async (fastify: FastifyInstance) => {
 
         return notification;
       } catch (error) {
-        fastify.log.error(`Failed to send notification: ${error instanceof Error ? error.message : String(error)}`);
+        fastify.log.error(error as Error, 'Failed to send notification:');
         throw error;
       }
     }

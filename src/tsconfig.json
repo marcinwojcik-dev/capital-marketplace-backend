@@ -5,20 +5,15 @@
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
     "strict": true,
-    "noEmit": false,
-    "outDir": "./dist",
-    "rootDir": "./src",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,  // Changed to true
     "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "types": ["node"]
   },
-  "include": ["src"],
-  "exclude": [
-    "node_modules",
-    "tests",
-    "dist",
-    "prisma"
-  ]
+  "include": ["src", "prisma"],
+  "ts-node": {
+    "esm": true
+  }
 }

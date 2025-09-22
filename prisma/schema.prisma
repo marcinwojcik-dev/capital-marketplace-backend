@@ -27,6 +27,7 @@ model Company {
   revenue          Float        @default(0)
   kycVerified      Boolean      @default(false)
   financialsLinked Boolean      @default(false)
+  personaId        String?
   createdAt        DateTime     @default(now()) 
   user             User         @relation(fields: [userId], references: [id])
   documents        Document[]

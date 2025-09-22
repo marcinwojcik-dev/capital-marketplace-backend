@@ -1,6 +1,7 @@
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL PRIMARY KEY,
+    "name" TEXT NOT NULL DEFAULT 'Unknown',
     "email" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -16,6 +17,7 @@ CREATE TABLE "Company" (
     "revenue" REAL NOT NULL DEFAULT 0,
     "kycVerified" BOOLEAN NOT NULL DEFAULT false,
     "financialsLinked" BOOLEAN NOT NULL DEFAULT false,
+    "personaId" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Company_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
@@ -41,17 +43,6 @@ CREATE TABLE "Notification" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "readAt" DATETIME,
     CONSTRAINT "Notification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "Message" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "companyId" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
-    "sender" TEXT NOT NULL,
-    "text" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "Message_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 -- CreateIndex

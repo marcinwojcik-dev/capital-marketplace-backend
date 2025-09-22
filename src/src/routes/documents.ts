@@ -81,10 +81,10 @@ const documentRoutes: FastifyPluginAsync = async (fastify) => {
         
         const infectedFiles = virusScanResults.filter(result => !result.clean);
         if (infectedFiles.length > 0) {
-          const infectedFileDetails = infectedFiles.map(result => ({
-            filename: filesToScan.find(f => f.filename === result.threats?.[0])?.filename,
-            threats: result.threats || ['Unknown threat']
-          }));
+        const infectedFileDetails = infectedFiles.map(result => ({
+          filename: filesToScan.find(f => f.filename === result.threats?.[0])?.filename,
+          threats: result.threats || ['Unknown threat']
+        }));
           return handleError(reply, 400, 'Virus scan failed', `Infected files detected: ${infectedFileDetails.map(f => f.filename).join(', ')}`);
         }
         
@@ -128,7 +128,8 @@ const documentRoutes: FastifyPluginAsync = async (fastify) => {
           );
 
         } catch (dbError) {
-          uploadErrors.push(`Database error for file ${fileToSave.filename}: ${dbError instanceof Error ? dbError.message : String(dbError)}`);
+          uploadErrors.push(`Database error for file ${fileToSave.filename}: ${(dbError as Error).message}`);
+          console.error(`💥 [UPLOAD] Database or notification error for file ${fileToSave.filename}:`, dbError);
         }
       }
 
@@ -139,6 +140,7 @@ const documentRoutes: FastifyPluginAsync = async (fastify) => {
       sendSuccess(reply, uploadedDocuments, 'Files uploaded successfully');
       
     } catch (error) {
+      console.error('❌ [UPLOAD] Global error during upload:', error);
       handleError(reply, 500, 'Internal Server Error', 'An unexpected error occurred during the upload process');
     }
   });
@@ -171,7 +173,7 @@ const documentRoutes: FastifyPluginAsync = async (fastify) => {
 
       sendSuccess(reply, documents);
     } catch (error) {
-      fastify.log.error(`Failed to fetch documents: ${error instanceof Error ? error.message : String(error)}`);
+      fastify.log.error(error as Error, 'Failed to fetch documents:');
       handleError(reply, 500, 'Failed to fetch documents', 'An error occurred while fetching documents');
     }
   });
@@ -182,89 +184,119 @@ const documentRoutes: FastifyPluginAsync = async (fastify) => {
     if (!authenticatedUser) {
       return;
     }
+    console.log('✅ [DOWNLOAD] User authenticated:', authenticatedUser.email);
 
     try {
       const documentId = (request.params as any).id;
+      console.log('🔍 [DOWNLOAD] Document ID:', documentId);
       
       if (!documentId || typeof documentId !== 'string') {
+        console.log('❌ [DOWNLOAD] Invalid document ID');
         return handleError(reply, 400, 'Invalid document ID', 'Document ID is required and must be a valid string');
       }
 
+      console.log('🔍 [DOWNLOAD] Looking up document in database...');
       const document = await fastify.prisma.document.findUnique({ 
         where: { id: documentId } 
       });
       
       if (!document) {
+        console.log('❌ [DOWNLOAD] Document not found');
         return handleError(reply, 404, 'Document not found', 'The requested document does not exist');
       }
+      console.log('✅ [DOWNLOAD] Document found:', document.name);
 
+      console.log('🔍 [DOWNLOAD] Checking company access...');
       const company = await fastify.prisma.company.findUnique({ 
         where: { id: document.companyId } 
       });
       
       if (!company || company.userId !== authenticatedUser.id) {
+        console.log('❌ [DOWNLOAD] Access denied - user does not own this document');
         return handleError(reply, 403, 'Access denied', 'You do not have permission to access this document');
       }
+      console.log('✅ [DOWNLOAD] Access granted');
 
       try {
+        console.log('📁 [DOWNLOAD] Creating file stream for:', document.path);
         const fileStream = createFileStream(document.path);
         
+        console.log('📤 [DOWNLOAD] Setting response headers...');
         reply.header('Content-Disposition', `attachment; filename="${document.name}"`);
         reply.header('Content-Type', document.mimeType);
         reply.header('Content-Length', document.size.toString());
         
+        console.log('✅ [DOWNLOAD] Sending file stream');
         return reply.send(fileStream);
       } catch (streamError) {
-        fastify.log.error(`Failed to create file stream: ${streamError instanceof Error ? streamError.message : String(streamError)}`);
+        console.log('💥 [DOWNLOAD] File stream error:', streamError);
+        fastify.log.error(streamError as Error, 'Failed to create file stream:');
         return handleError(reply, 500, 'File access error', 'Unable to access the requested file');
       }
       
     } catch (error) {
-      fastify.log.error(`Document download error: ${error instanceof Error ? error.message : String(error)}`);
+      console.log('💥 [DOWNLOAD] Critical download error:', error);
+      fastify.log.error(error as Error, 'Document download error:');
       handleError(reply, 500, 'Download failed', 'An error occurred while downloading the document');
     }
   });
 
   fastify.delete('/:id', async (request, reply) => {
+    console.log('🗑️ [DELETE] Starting document deletion request');
     
     const authenticatedUser = requireAuthentication(request, reply);
     if (!authenticatedUser) {
+      console.log('❌ [DELETE] Authentication failed');
       return;
     }
+    console.log('✅ [DELETE] User authenticated:', authenticatedUser.email);
 
     try {
       const documentId = (request.params as any).id;
+      console.log('🔍 [DELETE] Document ID:', documentId);
       
       if (!documentId || typeof documentId !== 'string') {
+        console.log('❌ [DELETE] Invalid document ID');
         return handleError(reply, 400, 'Invalid document ID', 'Document ID is required and must be a valid string');
       }
 
+      console.log('🔍 [DELETE] Looking up document in database...');
       const document = await fastify.prisma.document.findUnique({ 
         where: { id: documentId } 
       });
       
       if (!document) {
+        console.log('❌ [DELETE] Document not found');
         return handleError(reply, 404, 'Document not found', 'The requested document does not exist');
       }
+      console.log('✅ [DELETE] Document found:', document.name);
 
+      console.log('🔍 [DELETE] Checking company access...');
       const company = await fastify.prisma.company.findUnique({ 
         where: { id: document.companyId } 
       });
       
       if (!company || company.userId !== authenticatedUser.id) {
+        console.log('❌ [DELETE] Access denied - user does not own this document');
         return handleError(reply, 403, 'Access denied', 'You do not have permission to delete this document');
       }
+      console.log('✅ [DELETE] Access granted');
 
       try {
+        console.log('🗑️ [DELETE] Attempting to delete file from filesystem:', document.path);
         const fileDeleted = await deleteFileSafely(document.path);
         
         if (!fileDeleted) {
+          console.log('⚠️ [DELETE] File not found on filesystem, but continuing with database cleanup');
         } else {
+          console.log('✅ [DELETE] File successfully deleted from filesystem');
         }
 
+        console.log('🗑️ [DELETE] Removing document record from database...');
         await fastify.prisma.document.delete({
           where: { id: documentId }
         });
+        console.log('✅ [DELETE] Document record removed from database');
 
         await fastify.sendNotification(
           authenticatedUser.id, 
@@ -278,12 +310,14 @@ const documentRoutes: FastifyPluginAsync = async (fastify) => {
         }, 'Document deleted successfully');
         
       } catch (deleteError) {
-        fastify.log.error(`Document deletion error: ${deleteError instanceof Error ? deleteError.message : String(deleteError)}`);
+        console.log('💥 [DELETE] Error during deletion:', deleteError);
+        fastify.log.error(deleteError as Error, 'Document deletion error:');
         return handleError(reply, 500, 'Deletion failed', 'An error occurred while deleting the document');
       }
       
     } catch (error) {
-      fastify.log.error(`Document deletion error: ${error instanceof Error ? error.message : String(error)}`);
+      console.log('💥 [DELETE] Critical deletion error:', error);
+      fastify.log.error(error as Error, 'Document deletion error:');
       handleError(reply, 500, 'Deletion failed', 'An error occurred while deleting the document');
     }
   });
