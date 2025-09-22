@@ -31,8 +31,8 @@ describe('Company Routes', () => {
     fastify.decorate('prisma', mockPrisma);
     
     // Register routes with mocked dependencies
-    await fastify.register(async (fastify) => {
-      fastify.post('/', async (request, reply) => {
+    await fastify.register(async (fastify: any) => {
+      fastify.post('/', async (request: any, reply: any) => {
         const authUser = mockRequireAuth(request, reply);
         if (!authUser) {
           reply.status(401).send({ error: 'Not authenticated' });
@@ -74,7 +74,7 @@ describe('Company Routes', () => {
         }
       });
 
-      fastify.get('/', async (request, reply) => {
+      fastify.get('/', async (request: any, reply: any) => {
         const authenticatedUser = mockRequireAuth(request, reply);
         if (!authenticatedUser) {
           reply.status(401).send({ error: 'Not authenticated' });
