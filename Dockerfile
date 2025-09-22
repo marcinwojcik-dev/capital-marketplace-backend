@@ -29,9 +29,9 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
-# Create non-root user
+# Create non-root user and group
 RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN adduser --system --uid 1001 fastify
 
 # Copy built application
 COPY --from=builder /app/dist ./dist
@@ -39,12 +39,14 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
 
-# Create uploads directory and database directory
-RUN mkdir -p uploads && chown -R nextjs:nodejs uploads
-RUN mkdir -p data && chown -R nextjs:nodejs data
+# Copy and setup scripts
+COPY ./docker-entrypoint.sh /usr/local/bin/
+COPY ./start.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/start.sh
 
-# Set user
-USER nextjs
+# Install su-exec for user switching
+RUN apk add --no-cache su-exec
 
 # Expose port
 EXPOSE 4000
@@ -55,8 +57,11 @@ ENV PORT=4000
 ENV DATABASE_URL=file:./data/prod.db
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD node -e "require('http').get('http://localhost:4000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
+# Use an entrypoint script to fix permissions as root before running as 'fastify'
+ENTRYPOINT ["docker-entrypoint.sh"]
+
 # Start the application
-CMD ["node", "dist/server.js"]
+CMD ["start.sh"]
